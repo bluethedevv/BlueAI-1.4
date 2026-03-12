@@ -791,39 +791,37 @@ window.sendMessage = async () => {
   saveMsg('user', text);
 
   const uname = currentUser?.displayName || 'there';
-
-  // 1. Try local knowledge base first for simple/common questions
-  const local = localAnswer(text, uname);
-
-  // 2. Decide if we need API (complex / not in KB)
-  const isComplex = !local && (
-    text.length > 60 ||
-    /explain|how does|difference|compare|analyz|write|code|debug|research|summar|step by step|in detail|pros|cons|why|when|who is|what happened|history of/i.test(text)
-  );
-
   const thinkEl = appendThinking();
-
   let reply = '';
+  let webCtx = '';
 
-  if (local) {
-    // Instant local answer — no API call
-    await delay(320); // small natural pause
-    reply = local;
-  } else {
-    // Try Gemini
-    const needsWeb = webOn || /news|today|current|latest|2025|2026|weather|price|stock|who won|just happened/i.test(text);
-    let webCtx = '';
-    if (needsWeb) {
-      thinkEl.querySelector('.th-label').textContent = 'Searching…';
-      webCtx = await doWebSearch(text);
+  try {
+    // 1. Try local knowledge base first
+    const local = localAnswer(text, uname);
+
+    if (local) {
+      await delay(280);
+      reply = local;
+    } else {
+      // 2. Web search if needed
+      const needsWeb = webOn || /news|today|current|latest|2025|2026|weather|price|stock|who won|just happened/i.test(text);
+      if (needsWeb) {
+        thinkEl.querySelector('.th-label').textContent = 'Searching…';
+        webCtx = await doWebSearch(text);
+      }
+      // 3. Call Gemini
+      const isComplex = text.length > 60 ||
+        /explain|how does|difference|compare|analyz|write|code|debug|research|summar|step by step|in detail|pros|cons|why|when|who is|what happened|history of/i.test(text);
+      reply = await callGemini(text, webCtx, isComplex);
     }
-    reply = await callGemini(text, webCtx, isComplex);
+  } catch (e) {
+    reply = generateFallback(text);
   }
 
   thinkEl.remove();
 
   if (!reply || reply.trim() === '') {
-    reply = `I'm not sure about that one. Try rephrasing your question or enable 🌐 Web Search for current information.`;
+    reply = 'I couldn\'t process that. Please try again.';
   }
 
   renderMsg('ai', reply);
@@ -834,34 +832,46 @@ window.sendMessage = async () => {
   history.push({ role:'model', parts:[{ text: reply  }] });
   if (history.length > 40) history = history.slice(-40);
 
+  // Always reset — no matter what happened above
   isTyping = false;
   document.getElementById('send-btn').disabled = false;
   inp.focus();
 };
 
 /* ── Gemini API call with silent fallback ───────────────── */
-async function callGemini(userText, webCtx = '', complex = false) {
-  const sys = `You are Blue AI 1.4, a smart and friendly AI assistant. You answer in the same language the user writes in (English or German). Be helpful, accurate and clear. Use markdown formatting where it helps readability. Today's date: ${new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}.`;
+async function callGemini(userText, webCtx, complex) {
+  webCtx = webCtx || '';
+  complex = !!complex;
+  const today = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const sysMsg = 'You are Blue AI 1.4, a smart and friendly AI assistant. Answer in the same language the user writes in (English or German). Be helpful, accurate and clear. Use markdown where it helps. Today: ' + today + '.';
   const full = webCtx ? userText + '\n\n[Web context:\n' + webCtx + ']' : userText;
-  const ctx  = complex ? history : history.slice(-6);
+  const ctxSlice = (complex ? history : history.slice(-6)).filter(function(m){ return m.parts && m.parts[0] && m.parts[0].text; });
+
+  // Build contents array — inject system as leading exchange
+  const contents = [
+    { role: 'user',  parts: [{ text: sysMsg }] },
+    { role: 'model', parts: [{ text: 'Got it. I am Blue AI 1.4, ready to help.' }] }
+  ].concat(ctxSlice).concat([{ role: 'user', parts: [{ text: full }] }]);
 
   try {
-    const res  = await fetch(G_URL, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
+    const res = await fetch(G_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        system_instruction: { parts:[{ text: sys }] },
-        contents: [...ctx, { role:'user', parts:[{ text: full }] }],
-        generationConfig: { temperature: complex ? 0.72 : 0.58, maxOutputTokens: complex ? 2048 : 600 }
+        contents: contents,
+        generationConfig: {
+          temperature: complex ? 0.72 : 0.58,
+          maxOutputTokens: complex ? 2048 : 700
+        }
       })
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error.message);
-    const txt = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (txt) return txt;
-    throw new Error('empty');
-  } catch {
-    // Silent fallback — use built-in responses
+    const txt = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
+    if (txt && txt.trim()) return txt;
+    throw new Error('empty response');
+  } catch(err) {
+    console.warn('Gemini:', err.message);
     return generateFallback(userText);
   }
 }
