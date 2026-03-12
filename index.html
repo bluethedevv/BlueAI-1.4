@@ -419,7 +419,8 @@ window.sendMessage = async () => {
       /explain|how does|difference|compare|analyz|write|code|debug|research|summar|step by step|in detail|pros|cons|why|when|who is|what happened|history/i.test(text);
     reply = await askGemini(text, ctx, complex);
   } catch(e) {
-    reply = 'Something went wrong, please try again.';
+    console.error('sendMessage error:', e);
+    reply = 'Error: ' + (e.message || 'Something went wrong. Please try again.');
   } finally {
     thk.remove();
     if (!reply || !reply.trim()) reply = 'No response received. Please try again.';
@@ -435,32 +436,24 @@ window.sendMessage = async () => {
   }
 };
 
-// ── Gemini call ─────────────────────────────────────────────
+// ── Gemini call ───────────────────────────────────────────
 async function askGemini(userText, ctx, complex) {
   const today = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  const sys   = 'You are Blue AI 1.4, a smart and friendly AI assistant. Answer in the same language the user writes in (English or German). Be clear, helpful and accurate. Use markdown where appropriate. Today: '+today+'.';
+  const sys   = 'You are Blue AI 1.4, a helpful AI assistant. Answer in the same language the user writes (English or German). Be clear and accurate. Use markdown where helpful. Today: '+today+'.';
   const full  = ctx ? userText+'\n\n[Web context:\n'+ctx+']' : userText;
-  const slice = (complex ? hist : hist.slice(-6)).filter(m => m&&m.parts&&m.parts[0]&&m.parts[0].text);
+  const slice = (complex ? hist : hist.slice(-6)).filter(function(m){ return m&&m.parts&&m.parts[0]&&m.parts[0].text; });
 
-  const contents = [
-    { role:'user',  parts:[{ text: sys }] },
-    { role:'model', parts:[{ text: 'Understood. I am Blue AI 1.4.' }] },
-    ...slice,
-    { role:'user',  parts:[{ text: full }] }
-  ];
-
-  const res  = await fetch(GURL, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({
-      contents,
-      generationConfig:{ temperature: complex?0.72:0.6, maxOutputTokens: complex?2048:800 }
-    })
+  const body = JSON.stringify({
+    system_instruction: { parts: [{ text: sys }] },
+    contents: slice.concat([{ role:'user', parts:[{ text: full }] }]),
+    generationConfig: { temperature: complex?0.72:0.6, maxOutputTokens: complex?2048:800 }
   });
+
+  const res  = await fetch(GURL, { method:'POST', headers:{'Content-Type':'application/json'}, body: body });
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
-  const txt = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!txt||!txt.trim()) throw new Error('empty');
+  const txt = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
+  if (!txt || !txt.trim()) throw new Error('Empty response');
   return txt;
 }
 
