@@ -566,216 +566,6 @@ let webOn       = false;
 let isReg       = true;
 let chatActive  = false;
 
-/* ── Built-in knowledge base (fallback when API unavailable) ── */
-const KB = {
-  greetings: ['hi','hello','hey','hallo','moin','guten tag','good morning','good evening','sup','what\'s up','whats up','yo'],
-  farewells:  ['bye','goodbye','tschüss','auf wiedersehen','ciao','later','see you','take care'],
-  thanks:     ['thanks','thank you','danke','danke schön','thx','ty','appreciate it'],
-  howAreYou:  ['how are you','wie geht es dir','wie geht\'s','how are u','you doing','alles gut'],
-
-  answers: {
-    greet:    (n) => `Hey ${n}! How can I help you today?`,
-    farewell: () => `Talk to you soon! 👋`,
-    thanks:   () => `You're welcome! Let me know if you need anything else.`,
-    howAreYou:() => `I'm doing great, thanks for asking! What can I do for you?`,
-  },
-
-  facts: [
-    { q:['what is ai','was ist ki','artificial intelligence','künstliche intelligenz'],
-      a:`**Artificial Intelligence (AI)** refers to computer systems that can perform tasks that normally require human intelligence — like understanding language, recognizing images, or making decisions.\n\nModern AI is powered by machine learning, where models learn from large amounts of data rather than following hard-coded rules.` },
-    { q:['what is python','was ist python','python programming'],
-      a:`**Python** is a popular, beginner-friendly programming language known for its clear syntax. It's widely used in:\n- **AI & Data Science** (TensorFlow, PyTorch, Pandas)\n- **Web development** (Django, FastAPI)\n- **Automation & scripting**\n\nPython is often the first language beginners learn.` },
-    { q:['what is javascript','was ist javascript','js programming'],
-      a:`**JavaScript** is the programming language of the web. It runs in every browser and is used to make websites interactive. With Node.js, it also runs on servers.\n\nFrameworks like React, Vue, and Angular are all built on JavaScript.` },
-    { q:['what is html','was ist html'],
-      a:`**HTML (HyperText Markup Language)** is the standard language for creating web pages. It defines the structure of a page using elements like headings, paragraphs, links, and images.\n\nEvery website you visit is built on HTML.` },
-    { q:['what is css','was ist css'],
-      a:`**CSS (Cascading Style Sheets)** controls how HTML elements look — colors, fonts, layout, animations. Without CSS, websites would just be plain text on a white background.` },
-    { q:['what is machine learning','was ist machine learning','machine learning erklärt'],
-      a:`**Machine Learning** is a branch of AI where computers learn from data instead of being explicitly programmed.\n\nExample: instead of writing rules to detect spam, you feed thousands of spam and non-spam emails to a model — and it figures out the patterns itself.` },
-    { q:['what is the internet','was ist das internet'],
-      a:`The **Internet** is a global network of billions of connected computers. It was developed in the 1960s by ARPA (US military research) and became public in the early 1990s.\n\nIt works through **TCP/IP protocols** — a set of rules for how data travels between devices worldwide.` },
-    { q:['what is a computer','was ist ein computer'],
-      a:`A **computer** is an electronic device that processes data. It consists of:\n- **CPU** — the brain, executes instructions\n- **RAM** — short-term memory\n- **Storage** — long-term memory (SSD/HDD)\n- **GPU** — handles graphics (and AI!)\n\nModern computers can perform billions of operations per second.` },
-    { q:['what is the universe','was ist das universum','how big is the universe'],
-      a:`The **observable universe** is about **93 billion light-years** in diameter. It contains over **2 trillion galaxies**, each with hundreds of billions of stars.\n\nIt's approximately **13.8 billion years old**, originating from the Big Bang. The full universe could be vastly larger than what we can observe.` },
-    { q:['what is gravity','was ist schwerkraft','how does gravity work'],
-      a:`**Gravity** is a fundamental force that attracts any two objects with mass toward each other.\n\nEinstein's **General Theory of Relativity** describes it as a curvature of spacetime caused by mass — objects follow the curves in spacetime, which we experience as gravitational pull.` },
-    { q:['what is quantum computing','quantencomputer','quantum computer'],
-      a:`**Quantum computing** uses quantum mechanical phenomena (like superposition and entanglement) to process information differently from classical computers.\n\nWhile a classical bit is 0 or 1, a **qubit** can be both simultaneously. This allows quantum computers to solve certain problems exponentially faster — like cryptography, drug discovery, and optimization.` },
-    { q:['capital of germany','hauptstadt deutschland','capital germany'],
-      a:`The capital of **Germany** is **Berlin**. It's also the largest city in Germany with a population of about 3.7 million. Berlin has been the capital since German reunification in 1990.` },
-    { q:['capital of france','hauptstadt frankreich'],
-      a:`The capital of **France** is **Paris**, also known as "The City of Light." It's home to iconic landmarks like the Eiffel Tower and the Louvre.` },
-    { q:['capital of usa','capital united states','hauptstadt usa'],
-      a:`The capital of the **United States** is **Washington, D.C.** — not New York City (which is the largest city). D.C. stands for District of Columbia.` },
-    { q:['what is the speed of light','lichtgeschwindigkeit'],
-      a:`The **speed of light** in a vacuum is exactly **299,792,458 meters per second** (~300,000 km/s or ~186,000 miles per second).\n\nNothing with mass can travel at or beyond this speed, according to Einstein's Special Theory of Relativity.` },
-    { q:['what is dna','was ist dna'],
-      a:`**DNA (Deoxyribonucleic Acid)** is the molecule that carries the genetic instructions for the development, functioning, growth, and reproduction of all known organisms.\n\nIt's shaped like a **double helix** and made up of four bases: Adenine (A), Thymine (T), Guanine (G), and Cytosine (C).` },
-    { q:['how to make coffee','kaffee kochen','coffee recipe'],
-      a:`**Basic drip coffee:**\n1. Use ~15g of coffee per 250ml of water (1:16 ratio)\n2. Grind beans to medium coarseness\n3. Use water at **92–96°C** (just off boiling)\n4. Brew for 4–5 minutes\n\n**Espresso:** ~9g coffee, high pressure, 25–30 second extraction.` },
-    { q:['what is blockchain','was ist blockchain','blockchain erklärt'],
-      a:`A **blockchain** is a distributed ledger — a chain of data blocks shared across many computers. Each block contains data and a cryptographic hash of the previous block, making it tamper-resistant.\n\nBitcoin and Ethereum use blockchains, but the technology also has uses in supply chain, healthcare, and voting systems.` },
-    { q:['what is react','was ist react','reactjs'],
-      a:`**React** is a JavaScript library created by Facebook for building user interfaces. It uses a **component-based** approach — you build UIs as reusable pieces.\n\nKey features: **JSX** (HTML in JS), **Virtual DOM** for fast updates, **Hooks** for state management. It powers millions of websites.` },
-    { q:['what is firebase','was ist firebase'],
-      a:`**Firebase** is a platform by Google that provides backend services for apps, including:\n- **Authentication** (login/signup)\n- **Realtime Database** & Firestore (cloud databases)\n- **Cloud Storage**\n- **Hosting**\n\nIt's popular for quickly building apps without managing your own server.` },
-    { q:['what is an api','was ist eine api','api erklärt'],
-      a:`An **API (Application Programming Interface)** is a set of rules that lets different software talk to each other.\n\nExample: When a weather app shows today's forecast, it's calling a weather API to get that data. APIs define what requests you can make and what format the responses come in (usually JSON).` },
-    { q:['tell me a joke','mach einen witz','joke please'],
-      a:`Why do programmers prefer dark mode?\n\n**Because light attracts bugs.** 🐛` },
-    { q:['who made you','wer hat dich gemacht','who created you','wer bist du'],
-      a:`I'm **Blue AI 1.4**, a custom AI assistant. I'm here to help you with questions, coding, writing, research, and much more. What can I do for you?` },
-    { q:['what can you do','was kannst du','your capabilities','was bist du'],
-      a:`I can help you with a wide range of things:\n\n- **Answering questions** in English and German\n- **Explaining concepts** in science, tech, history, math\n- **Coding help** — Python, JavaScript, HTML, CSS, and more\n- **Writing** — emails, texts, summaries\n- **Web search** — current news and information (enable with the 🌐 button)\n- **General knowledge** — geography, culture, science\n\nJust ask!` },
-    { q:['what is 2+2','2 plus 2','was ist 2+2'],
-      a:`2 + 2 = **4**` },
-    { q:['time','what time is it','uhrzeit','wie spät ist es'],
-      a:`I don't have direct access to your local clock, but your device shows the current time. Here's a tip: you can ask me questions like "what timezone is New York in?" or "time difference between Berlin and Tokyo."` },
-    { q:['weather','wetter','what is the weather'],
-      a:`I can search the web for current weather if you enable the **🌐 Web** button and ask again — e.g., "What's the weather in Berlin today?"` },
-  ]
-};
-
-function localAnswer(text, username) {
-  const t = text.toLowerCase().trim();
-
-  if (KB.greetings.some(g => t.includes(g))) return KB.answers.greet(username);
-  if (KB.farewells.some(g => t.includes(g)))  return KB.answers.farewell();
-  if (KB.thanks.some(g => t.includes(g)))     return KB.answers.thanks();
-  if (KB.howAreYou.some(g => t.includes(g)))  return KB.answers.howAreYou();
-
-  for (const entry of KB.facts) {
-    if (entry.q.some(kw => t.includes(kw))) return entry.a;
-  }
-
-  // Simple math fallback
-  const mathMatch = t.match(/^[\d\s\+\-\*\/\(\)\.]+$/);
-  if (mathMatch) {
-    try {
-      const result = Function('"use strict"; return (' + t + ')')();
-      if (typeof result === 'number' && isFinite(result)) return `= **${result}**`;
-    } catch {}
-  }
-
-  return null;
-}
-
-/* ── Auth state ─────────────────────────────────────────── */
-onAuthStateChanged(auth, async user => {
-  currentUser = user;
-  if (user) {
-    bootApp(user);
-    await loadHistory(user.uid);
-  } else {
-    document.getElementById('auth-screen').style.display = 'flex';
-    document.getElementById('app-screen').style.display  = 'none';
-  }
-});
-
-function bootApp(user) {
-  document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('app-screen').style.display  = 'flex';
-  const name = user.displayName || user.email.split('@')[0];
-  document.getElementById('greet-name').textContent = name;
-  document.getElementById('u-name').textContent      = name;
-  document.getElementById('u-avatar').textContent    = name.charAt(0).toUpperCase();
-}
-
-/* ── Toggle auth mode ───────────────────────────────────── */
-window.toggleMode = () => {
-  isReg = !isReg;
-  document.getElementById('auth-heading').textContent = isReg ? 'Create Account' : 'Welcome back';
-  document.getElementById('auth-btn').textContent     = isReg ? 'Create Account' : 'Sign In';
-  document.getElementById('tog-txt').textContent      = isReg ? 'Already have an account?' : "Don't have an account?";
-  document.getElementById('tog-lnk').textContent      = isReg ? ' Sign in' : ' Create one';
-  document.getElementById('uname-row').style.display  = isReg ? 'flex' : 'none';
-  document.getElementById('auth-err').textContent = '';
-};
-
-/* ── Submit auth ────────────────────────────────────────── */
-window.submitAuth = async () => {
-  const email = document.getElementById('f-email').value.trim();
-  const pass  = document.getElementById('f-pass').value;
-  const uname = document.getElementById('f-uname').value.trim();
-  const errEl = document.getElementById('auth-err');
-  errEl.textContent = '';
-  if (!email || !pass) { errEl.textContent = 'Please fill all fields.'; return; }
-  if (isReg && !uname) { errEl.textContent = 'Please enter a username.'; return; }
-  if (isReg && pass.length < 6) { errEl.textContent = 'Password needs at least 6 characters.'; return; }
-  const btn = document.getElementById('auth-btn');
-  btn.disabled = true; btn.textContent = 'Please wait…';
-  try {
-    if (isReg) {
-      const c = await createUserWithEmailAndPassword(auth, email, pass);
-      await updateProfile(c.user, { displayName: uname });
-      await set(ref(db, `users/${c.user.uid}/profile`), { username: uname, email, createdAt: Date.now() });
-    } else {
-      await signInWithEmailAndPassword(auth, email, pass);
-    }
-  } catch (e) {
-    errEl.textContent = fmtErr(e.code);
-    btn.disabled = false;
-    btn.textContent = isReg ? 'Create Account' : 'Sign In';
-  }
-};
-
-function fmtErr(code) {
-  return ({
-    'auth/invalid-email':'Invalid email address.',
-    'auth/user-not-found':'No account found.',
-    'auth/wrong-password':'Wrong password.',
-    'auth/email-already-in-use':'Email already registered.',
-    'auth/weak-password':'Password too weak.',
-    'auth/invalid-credential':'Wrong email or password.',
-    'auth/too-many-requests':'Too many attempts. Try later.',
-    'auth/network-request-failed':'Network error.'
-  })[code] || 'Something went wrong.';
-}
-
-/* ── Logout ─────────────────────────────────────────────── */
-window.doLogout = async () => {
-  history = []; chatActive = false;
-  document.getElementById('chat-area').innerHTML = '';
-  showWelcome();
-  await signOut(auth);
-};
-
-/* ── Firebase: save / load ──────────────────────────────── */
-function saveMsg(role, content) {
-  if (!currentUser) return;
-  push(ref(db, `users/${currentUser.uid}/chats`), { role, content, ts: Date.now() });
-}
-
-async function loadHistory(uid) {
-  const snap = await get(ref(db, `users/${uid}/chats`));
-  if (!snap.exists()) return;
-  const entries = Object.values(snap.val()).sort((a,b) => a.ts - b.ts).slice(-40);
-  history = [];
-  document.getElementById('chat-area').innerHTML = '';
-  for (const e of entries) {
-    history.push({ role: e.role === 'ai' ? 'model' : 'user', parts: [{ text: e.content }] });
-    renderMsg(e.role, e.content, false);
-  }
-  if (entries.length > 0) { showChat(); scrollToBottom(false); }
-}
-
-/* ── Clear ──────────────────────────────────────────────── */
-window.clearChat = () => {
-  history = []; chatActive = false;
-  document.getElementById('chat-area').innerHTML = '';
-  showWelcome();
-  if (currentUser) set(ref(db, `users/${currentUser.uid}/chats`), null);
-};
-
-/* ── Web toggle ─────────────────────────────────────────── */
-window.toggleWeb = () => {
-  webOn = !webOn;
-  document.getElementById('web-btn').classList.toggle('on', webOn);
-  document.getElementById('web-bar').classList.toggle('on', webOn);
-};
-
 /* ── Send message ───────────────────────────────────────── */
 window.sendMessage = async () => {
   const inp  = document.getElementById('user-input');
@@ -790,123 +580,66 @@ window.sendMessage = async () => {
   renderMsg('user', text);
   saveMsg('user', text);
 
-  const uname = currentUser?.displayName || 'there';
   const thinkEl = appendThinking();
   let reply = '';
   let webCtx = '';
 
   try {
-    // 1. Try local knowledge base first
-    const local = localAnswer(text, uname);
-
-    if (local) {
-      await delay(280);
-      reply = local;
-    } else {
-      // 2. Web search if needed
-      const needsWeb = webOn || /news|today|current|latest|2025|2026|weather|price|stock|who won|just happened/i.test(text);
-      if (needsWeb) {
-        thinkEl.querySelector('.th-label').textContent = 'Searching…';
-        webCtx = await doWebSearch(text);
-      }
-      // 3. Call Gemini
-      const isComplex = text.length > 60 ||
-        /explain|how does|difference|compare|analyz|write|code|debug|research|summar|step by step|in detail|pros|cons|why|when|who is|what happened|history of/i.test(text);
-      reply = await callGemini(text, webCtx, isComplex);
+    const needsWeb = webOn || /news|today|current|latest|2025|2026|weather|price|stock|who won|just happened/i.test(text);
+    if (needsWeb) {
+      thinkEl.querySelector('.th-label').textContent = 'Searching…';
+      webCtx = await doWebSearch(text);
     }
-  } catch (e) {
-    reply = generateFallback(text);
+    const isComplex = text.length > 60 ||
+      /explain|how does|difference|compare|analyz|write|code|debug|research|summar|step by step|in detail|pros|cons|why|when|who is|what happened|history/i.test(text);
+    reply = await callGemini(text, webCtx, isComplex);
+  } catch(e) {
+    reply = 'Something went wrong. Please try again.';
+  } finally {
+    thinkEl.remove();
+    if (!reply || !reply.trim()) reply = 'No response received. Please try again.';
+    renderMsg('ai', reply);
+    saveMsg('ai', reply);
+    const stored = webCtx ? text + '\n\n[context:\n' + webCtx + ']' : text;
+    history.push({ role:'user',  parts:[{ text: stored }] });
+    history.push({ role:'model', parts:[{ text: reply  }] });
+    if (history.length > 40) history = history.slice(-40);
+    isTyping = false;
+    document.getElementById('send-btn').disabled = false;
+    inp.focus();
   }
-
-  thinkEl.remove();
-
-  if (!reply || reply.trim() === '') {
-    reply = 'I couldn\'t process that. Please try again.';
-  }
-
-  renderMsg('ai', reply);
-  saveMsg('ai', reply);
-
-  const stored = webCtx ? text + '\n\n[context:\n' + webCtx + ']' : text;
-  history.push({ role:'user',  parts:[{ text: stored }] });
-  history.push({ role:'model', parts:[{ text: reply  }] });
-  if (history.length > 40) history = history.slice(-40);
-
-  // Always reset — no matter what happened above
-  isTyping = false;
-  document.getElementById('send-btn').disabled = false;
-  inp.focus();
 };
 
-/* ── Gemini API call with silent fallback ───────────────── */
+/* ── Gemini API call ─────────────────────────────────────── */
 async function callGemini(userText, webCtx, complex) {
-  webCtx = webCtx || '';
+  webCtx  = webCtx  || '';
   complex = !!complex;
   const today = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  const sysMsg = 'You are Blue AI 1.4, a smart and friendly AI assistant. Answer in the same language the user writes in (English or German). Be helpful, accurate and clear. Use markdown where it helps. Today: ' + today + '.';
+  const sysMsg = 'You are Blue AI 1.4, a smart and friendly AI assistant. Answer in the same language the user writes in (English or German). Be clear, helpful and accurate. Use markdown where appropriate. Today: ' + today + '.';
   const full = webCtx ? userText + '\n\n[Web context:\n' + webCtx + ']' : userText;
-  const ctxSlice = (complex ? history : history.slice(-6)).filter(function(m){ return m.parts && m.parts[0] && m.parts[0].text; });
+  const ctxSlice = (complex ? history : history.slice(-6)).filter(function(m){ return m && m.parts && m.parts[0] && m.parts[0].text; });
 
-  // Build contents array — inject system as leading exchange
   const contents = [
-    { role: 'user',  parts: [{ text: sysMsg }] },
-    { role: 'model', parts: [{ text: 'Got it. I am Blue AI 1.4, ready to help.' }] }
-  ].concat(ctxSlice).concat([{ role: 'user', parts: [{ text: full }] }]);
+    { role:'user',  parts:[{ text: sysMsg }] },
+    { role:'model', parts:[{ text: 'Understood. I am Blue AI 1.4.' }] }
+  ].concat(ctxSlice).concat([{ role:'user', parts:[{ text: full }] }]);
 
-  try {
-    const res = await fetch(G_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: contents,
-        generationConfig: {
-          temperature: complex ? 0.72 : 0.58,
-          maxOutputTokens: complex ? 2048 : 700
-        }
-      })
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-    const txt = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
-    if (txt && txt.trim()) return txt;
-    throw new Error('empty response');
-  } catch(err) {
-    console.warn('Gemini:', err.message);
-    return generateFallback(userText);
-  }
-}
-
-/* ── Intelligent fallback generator ────────────────────── */
-function generateFallback(text) {
-  const t = text.toLowerCase();
-
-  // Detect topic and give a reasonable response
-  if (/code|program|function|script|python|javascript|html|css|java|c\+\+|rust|typescript/i.test(t)) {
-    return `I can help with coding! Here's what I can tell you:\n\nFor detailed code assistance with specific examples, try enabling 🌐 Web Search and asking again, or describe exactly what you need and I'll do my best with my built-in knowledge.\n\nWhat programming language or problem are you working with?`;
-  }
-  if (/math|calculate|equation|algebra|calculus|formula/i.test(t)) {
-    return `I can help with math! For simple calculations, just type them directly (e.g., "2 * 8 + 4").\n\nFor complex equations, describe what you're trying to solve and I'll walk you through it step by step.`;
-  }
-  if (/write|draft|email|letter|essay|text|story|blog/i.test(t)) {
-    return `I'd be happy to help you write something. Could you give me a bit more detail?\n\n- **Topic / subject**\n- **Tone** (formal, casual, professional)\n- **Length** (short, medium, long)\n\nI'll craft it for you!`;
-  }
-  if (/translate|übersetze|übersetzung|translation/i.test(t)) {
-    return `I can translate between **English and German**. Just tell me:\n- The text you want translated\n- Which direction (EN → DE or DE → EN)`;
-  }
-  if (/history|geschichte|historical/i.test(t)) {
-    return `History is a broad topic! Could you be more specific? For example:\n- A specific event (e.g., "What caused World War I?")\n- A time period or civilization\n- A historical figure\n\nI'll give you a thorough answer.`;
-  }
-  if (/science|biology|chemistry|physics|wissenschaft/i.test(t)) {
-    return `Science question detected! I have built-in knowledge about many scientific topics. Try asking something specific like:\n- "How does photosynthesis work?"\n- "What is a black hole?"\n- "Explain the periodic table"\n\nOr enable 🌐 Web for the latest research.`;
-  }
-
-  // Generic intelligent response
-  const responses = [
-    `That's an interesting question. I understand you're asking about **${text.split(' ').slice(0,4).join(' ')}...**\n\nCould you give me a bit more context or rephrase? I want to make sure I give you the most accurate answer possible.`,
-    `I want to give you a complete answer on this. Enable the **🌐 Web** button above the input for real-time information, or try rephrasing your question — I might have it in my knowledge base!`,
-    `Good question! I'm working with my built-in knowledge here. For the most current or detailed information on this topic, try enabling 🌐 Web Search.\n\nCould you tell me more specifically what aspect you're curious about?`,
-  ];
-  return responses[Math.floor(Math.random() * responses.length)];
+  const res = await fetch(G_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: contents,
+      generationConfig: {
+        temperature: complex ? 0.72 : 0.6,
+        maxOutputTokens: complex ? 2048 : 800
+      }
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  const txt = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
+  if (!txt || !txt.trim()) throw new Error('Empty response from API');
+  return txt;
 }
 
 /* ── Web search via Gemini grounding ────────────────────── */
